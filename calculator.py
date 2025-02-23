@@ -1,55 +1,67 @@
 from tkinter import StringVar
 
+# A class that manages all the operations done on a specific listenable string
 class Calculator:
-    string_mappings = {
+    string_mappings = { # Maps some significant chars used visually to their corresponding equivalents in Python
         ":": "/",
         "×": "*",
         ",": "."
     }
-    operation_chars = ["+", "-", "×", ":"]
-    is_error = False
+    operator_chars = ["+", "-", "×", ":"] # A list of binary operators that work slightly 
+                                          # differently than the rest of the characters
+    is_error = False # Indicates if the last calculation was attempted on an invalid expression
 
+    def __init__(self, character_limit: int):
+        self.character_limit = character_limit
+
+    # Appends the specified string value to the specified listenable string
     def append_to(self, target: StringVar, s: str):
-        if self.is_error:
-            return
-
         previous_expr = target.get()
 
-        if len(previous_expr) > 0 and s in self.operation_chars and previous_expr[-1] in self.operation_chars:
+        # Proceed only if the calculator is in the valid state currently and
+        # if the character limit hasn't been reached yet
+        if self.is_error or len(previous_expr) >= self.character_limit:
+            return
+
+        # Make sure to replace the last operator with the new one if necessary (to avoid doubling operators)
+        if len(previous_expr) > 0 and s in self.operator_chars and previous_expr[-1] in self.operator_chars:
             previous_expr = previous_expr[:-1]
 
         target.set(previous_expr + s)
 
+    # Removes the last character of the target listenable string's value
     def remove_last_char(self, target: StringVar):
+        # Clear the whole expression instead if there has been an error (to avoid leaving residues of the
+        # "custom error message" behind)
         if self.is_error:
             self.clear_expression(target)
+        # Otherwise just remove the last character
         else:
             target.set(target.get()[:-1])
 
+    # Empties the whole target listenable string's value
     def clear_expression(self, target: StringVar):
         target.set("")
+        # Reset the error flag (clearing the expression always removes the error)
         self.is_error = False
 
+    # Evaluates the expression saved in the target listenable string and replaces its value by the result
     def calculate(self, target: StringVar):
-        # Construct the whole expression to be evaluated
         expression = target.get()
 
         # Replace any mapped characters with their equivalent used when evaling
         for key in self.string_mappings:
             expression = expression.replace(key, self.string_mappings[key])
 
+        # Make sure to catch exceptions if the expression isn't valid
+        # and in case of any caught, just write out our universal error message
         try:
             eval_result = eval(expression)
         except:
             eval_result = "What the fuck man?" # This is our universal error message.
-            self.is_error = True
+            self.is_error = True # Switch the error flag to signal that the current expression was invalid
 
         eval_result_str = str(eval_result)
-
-        if (eval_result_str.isnumeric() and float(eval_result_str).is_integer()):
-            eval_result_str = str(int(float(eval_result_str)))
-        # eval_result_str = str(int(eval_result)) if str(eval_result).isnumeric() and float(eval_result).is_integer() else str(eval_result)
-        # eval_result_str = str(eval_result)
 
         # Replace any mapped characters with their equivalent used visually
         for key in self.string_mappings:
